@@ -72,7 +72,7 @@ class Scanner(val source: String) {
     var level = 1
     while (level > 0) {
       if (current >= source.length) {
-        error(line, "Unterminated block comment.")
+        Lox.error(line, "Unterminated block comment.")
         return
       }
 
@@ -104,7 +104,7 @@ class Scanner(val source: String) {
     }
 
     if (current >= source.length) {
-      error(line, "Unterminated string.")
+      Lox.error(line, "Unterminated string.")
       return
     }
 
@@ -170,7 +170,7 @@ class Scanner(val source: String) {
       '"' -> parseString()
       in '0'..'9' -> parseNumber()
       in 'a'..'z', in 'A'..'Z', '_' -> parseIdentifier()
-      else -> error(line, "Unexpected character: $char")
+      else -> Lox.error(line, "Unexpected character: $char")
     }
   }
 

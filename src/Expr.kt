@@ -40,7 +40,7 @@ class Grouping(val expr: Expr) : Expr() {
   }
 }
 
-class Literal(val value: Object) : Expr() {
+class Literal(val value: Object?) : Expr() {
   override fun ast(): String {
     return value.toString()
   }
