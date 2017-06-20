@@ -139,7 +139,7 @@ class Parser(val tokens: List<Token>) {
     when {
       match(TokenType.FALSE) -> return Literal(false as Object)
       match(TokenType.TRUE) -> return Literal(true as Object)
-      match(TokenType.NIL) -> return Literal(null as Object)
+      match(TokenType.NIL) -> return Literal(null as Object?)
       match(TokenType.NUMBER, TokenType.STRING) -> {
         return Literal(previous().literal)
       }

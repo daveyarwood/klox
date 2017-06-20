@@ -5,9 +5,14 @@ import java.io.File
 import java.nio.file.Paths
 import java.util.List
 
-var hadError = false;
+class RuntimeError(val token: Token, msg: String) : RuntimeException(msg) {}
+
+var hadError = false
+var hadRuntimeError = false
 
 object Lox {
+  val interpreter = Interpreter()
+
   private fun report(line: Int, location: String, message: String) {
     println("[line $line] Error$location: $message")
     hadError = true
@@ -34,14 +39,14 @@ object Lox {
     // Stop if there was a syntax error.
     if (hadError || expr == null) return
 
-    // Print the AST.
-    println(expr!!.ast())
+    interpreter.interpret(expr!!)
   }
 
   fun runFile(path: String) {
     val input = File(path).readText()
     run(input)
     if (hadError) System.exit(65)
+    if (hadRuntimeError) System.exit(70)
   }
 
   fun runPrompt() {
