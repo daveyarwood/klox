@@ -3,7 +3,6 @@ package io.djy.klox
 import java.io.IOException
 import java.io.File
 import java.nio.file.Paths
-import java.util.List
 
 class RuntimeError(val token: Token, msg: String) : RuntimeException(msg) {}
 
@@ -30,16 +29,16 @@ object Lox {
     report(line, "", message)
   }
 
-  private fun run(source: String) {
+  private fun run(source: String): Any? {
     val scanner = Scanner(source)
     val tokens = scanner.scanTokens()
     val parser = Parser(tokens)
-    val expr: Expr? = parser.parse()
+    val statements: List<Stmt> = parser.parse()
 
     // Stop if there was a syntax error.
-    if (hadError || expr == null) return
+    if (hadError) return null
 
-    interpreter.interpret(expr!!)
+    return interpreter.interpret(statements)
   }
 
   fun runFile(path: String) {
@@ -59,7 +58,8 @@ object Lox {
       if (input == null) {
         running = false
       } else {
-        run(input)
+        val result = run(input)
+        println(stringify(result))
       }
 
       hadError = false // so we don't exit

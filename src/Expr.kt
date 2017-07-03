@@ -35,12 +35,28 @@ interface Printable {
 }
 
 interface Evaluable {
-  fun evaluate(): Any?
+  fun evaluate(env: Environment): Any?
 }
 
 abstract class Expr : Printable, Evaluable {}
 
-class Binary(val left: Expr, val op: Token, val right: Expr) : Expr() {
+class AssignExpr(val name: Token, val value: Expr) : Expr() {
+  override fun ast(): String {
+    return parenthesize("assign", LiteralExpr(name.lexeme as Object?), value)
+  }
+
+  override fun rpn(): String {
+    return "${value.rpn()} ${name.lexeme} assign"
+  }
+
+  override fun evaluate(env: Environment): Any? {
+    val v = value.evaluate(env)
+    env.assign(name, v)
+    return v
+  }
+}
+
+class BinaryExpr(val left: Expr, val op: Token, val right: Expr) : Expr() {
   override fun ast(): String {
     return parenthesize(op.lexeme, left, right)
   }
@@ -49,9 +65,9 @@ class Binary(val left: Expr, val op: Token, val right: Expr) : Expr() {
     return "${left.rpn()} ${right.rpn()} ${op.lexeme}"
   }
 
-  override fun evaluate(): Any? {
-    val x: Any? = left.evaluate()
-    val y: Any? = right.evaluate()
+  override fun evaluate(env: Environment): Any? {
+    val x: Any? = left.evaluate(env)
+    val y: Any? = right.evaluate(env)
 
     return when (op.type) {
       TokenType.MINUS -> {
@@ -100,7 +116,7 @@ class Binary(val left: Expr, val op: Token, val right: Expr) : Expr() {
   }
 }
 
-class Grouping(val expr: Expr) : Expr() {
+class GroupingExpr(val expr: Expr) : Expr() {
   override fun ast(): String {
     return parenthesize("group", expr)
   }
@@ -109,12 +125,12 @@ class Grouping(val expr: Expr) : Expr() {
     return expr.rpn()
   }
 
-  override fun evaluate(): Any? {
-    return expr.evaluate()
+  override fun evaluate(env: Environment): Any? {
+    return expr.evaluate(env)
   }
 }
 
-class Literal(val value: Object?) : Expr() {
+class LiteralExpr(val value: Object?) : Expr() {
   override fun ast(): String {
     return value.toString()
   }
@@ -123,12 +139,12 @@ class Literal(val value: Object?) : Expr() {
     return value.toString()
   }
 
-  override fun evaluate(): Any? {
+  override fun evaluate(env: Environment): Any? {
     return value
   }
 }
 
-class Unary(val op: Token, val right: Expr) : Expr() {
+class UnaryExpr(val op: Token, val right: Expr) : Expr() {
   override fun ast(): String {
     return parenthesize(op.lexeme, right)
   }
@@ -137,14 +153,28 @@ class Unary(val op: Token, val right: Expr) : Expr() {
     return "${right.rpn()} ${op.lexeme}"
   }
 
-  override fun evaluate(): Any? {
-    val x: Any? = right.evaluate()
+  override fun evaluate(env: Environment): Any? {
+    val x: Any? = right.evaluate(env)
 
     return when (op.type) {
       TokenType.MINUS -> { checkNumberOperand(op, x); -(x as Double) }
       TokenType.BANG  -> !isTruthy(x)
       else            -> null
     }
+  }
+}
+
+class VariableExpr(val name: Token): Expr() {
+  override fun ast(): String {
+    return name.lexeme
+  }
+
+  override fun rpn(): String {
+    return name.lexeme
+  }
+
+  override fun evaluate(env: Environment): Any? {
+    return env.get(name)
   }
 }
 

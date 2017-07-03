@@ -1,6 +1,6 @@
 package io.djy.klox
 
-private fun stringify(x: Any?): String {
+fun stringify(x: Any?): String {
   return when (x) {
     null -> "nil"
     is Double -> {
@@ -22,12 +22,18 @@ private fun runtimeError(e: RuntimeError) {
 }
 
 class Interpreter {
-  fun interpret(expr: Expr) {
+  var environment = Environment()
+
+  fun interpret(statements: List<Stmt>): Any? {
     try {
-      val value: Any? = expr.evaluate()
-      println(stringify(value))
+      var result: Any? = null
+      for (statement in statements) {
+        result = statement.execute(environment)
+      }
+      return result
     } catch (e: RuntimeError) {
       runtimeError(e)
+      return null
     }
   }
 }
