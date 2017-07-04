@@ -17,7 +17,7 @@ private fun checkNumberOperands(op: Token, x: Any?, y: Any?) {
   }
 }
 
-private fun isTruthy(x: Any?): Boolean {
+fun isTruthy(x: Any?): Boolean {
   return (x ?: false) != false
 }
 
@@ -42,7 +42,7 @@ abstract class Expr : Printable, Evaluable {}
 
 class AssignExpr(val name: Token, val value: Expr) : Expr() {
   override fun ast(): String {
-    return parenthesize("assign", LiteralExpr(name.lexeme as Object?), value)
+    return parenthesize("assign", LiteralExpr(name.lexeme), value)
   }
 
   override fun rpn(): String {
@@ -130,7 +130,7 @@ class GroupingExpr(val expr: Expr) : Expr() {
   }
 }
 
-class LiteralExpr(val value: Object?) : Expr() {
+class LiteralExpr(val value: Any?) : Expr() {
   override fun ast(): String {
     return value.toString()
   }
@@ -141,6 +141,26 @@ class LiteralExpr(val value: Object?) : Expr() {
 
   override fun evaluate(env: Environment): Any? {
     return value
+  }
+}
+
+class LogicalExpr(val left: Expr, val op: Token, val right: Expr) : Expr() {
+  override fun ast(): String {
+    return parenthesize(op.lexeme, left, right)
+  }
+
+  override fun rpn(): String {
+    return "${left.rpn()} ${right.rpn()} ${op.lexeme}"
+  }
+
+  override fun evaluate(env: Environment): Any? {
+    val l: Any? = left.evaluate(env)
+
+    return when (op.type) {
+      TokenType.OR  -> if (isTruthy(l)) l else right.evaluate(env)
+      TokenType.AND -> if (isTruthy(l)) right.evaluate(env) else l
+      else -> throw RuntimeError(op, "Unrecognized logical operator")
+    }
   }
 }
 

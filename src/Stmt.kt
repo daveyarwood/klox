@@ -33,3 +33,20 @@ class BlockStmt(val statements: List<Stmt>) : Stmt() {
     return null
   }
 }
+
+class IfStmt(val condition: Expr, val thenBranch: Stmt,
+             val elseBranch: Stmt?) : Stmt() {
+  override fun execute(env: Environment): Any? {
+    return if (isTruthy(condition.evaluate(env)))
+      thenBranch.execute(env)
+    else
+      elseBranch?.execute(env)
+  }
+}
+
+class WhileStmt(val condition: Expr, val body: Stmt) : Stmt() {
+  override fun execute(env: Environment): Any? {
+    while (isTruthy(condition.evaluate(env))) body.execute(env)
+    return null
+  }
+}

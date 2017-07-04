@@ -59,7 +59,7 @@ class Scanner(val source: String) {
     addToken(tokenType, null)
   }
 
-  private fun addToken(tokenType: TokenType, literal: Object?) {
+  private fun addToken(tokenType: TokenType, literal: Any?) {
     val text: String = source.substring(start, current)
     tokens.add(Token(tokenType, text, literal, line))
   }
@@ -113,7 +113,7 @@ class Scanner(val source: String) {
 
     // Trim the surrounding quotes.
     val contents: String = source.substring(start + 1, current - 1)
-    addToken(TokenType.STRING, contents as Object?)
+    addToken(TokenType.STRING, contents)
   }
 
   private fun parseNumber() {
@@ -127,7 +127,7 @@ class Scanner(val source: String) {
     }
 
     val number: Double = source.substring(start, current).toDouble()
-    addToken(TokenType.NUMBER, number as Object?)
+    addToken(TokenType.NUMBER, number)
   }
 
   private fun parseIdentifier() {
