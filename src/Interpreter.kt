@@ -24,6 +24,16 @@ private fun runtimeError(e: RuntimeError) {
 class Interpreter {
   var environment = Environment()
 
+  init {
+    // Native functions
+    environment.define("clock", object : LoxCallable {
+      override fun arity(): Int { return 0 }
+      override fun call(env: Environment, arguments: List<Any?>): Any? {
+        return System.currentTimeMillis().toDouble() / 1000.0
+      }
+    })
+  }
+
   fun interpret(statements: List<Stmt>): Any? {
     try {
       var result: Any? = null

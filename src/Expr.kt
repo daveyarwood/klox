@@ -116,6 +116,34 @@ class BinaryExpr(val left: Expr, val op: Token, val right: Expr) : Expr() {
   }
 }
 
+class CallExpr(val callee: Expr, val paren: Token,
+               val arguments: List<Expr>): Expr() {
+  override fun ast(): String {
+    return parenthesize(callee.ast(), *(arguments.toTypedArray()))
+  }
+
+  override fun rpn(): String {
+    val args: String = arguments.joinToString(separator = " ",
+                                              transform = { it.ast() })
+    return "${callee.rpn()} $args"
+  }
+
+  override fun evaluate(env: Environment): Any? {
+    val cValue = callee.evaluate(env)
+    if (cValue !is LoxCallable)
+      throw RuntimeError(paren, "Can only call functions and classes.")
+    val callable = cValue as LoxCallable
+
+    val nArgs = arguments.size
+    val arity = callable.arity()
+    if (nArgs != arity)
+      throw RuntimeError(paren, "Expected $arity arguments but got $nArgs.")
+    val args = arguments.map { it.evaluate(env) }
+
+    return callable.call(env, args)
+  }
+}
+
 class GroupingExpr(val expr: Expr) : Expr() {
   override fun ast(): String {
     return parenthesize("group", expr)

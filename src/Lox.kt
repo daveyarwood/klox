@@ -4,6 +4,7 @@ import java.io.IOException
 import java.io.File
 import java.nio.file.Paths
 
+class Return(val value: Any?) : RuntimeException(null, null, false, false) {}
 class RuntimeError(val token: Token, msg: String) : RuntimeException(msg) {}
 
 var hadError = false

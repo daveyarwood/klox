@@ -19,6 +19,12 @@ class PrintStmt(val expr: Expr) : Stmt() {
   }
 }
 
+class ReturnStmt(val keyword: Token, val value: Expr?) : Stmt() {
+  override fun execute(env: Environment): Any? {
+    throw Return(value?.evaluate(env))
+  }
+}
+
 class VarStmt(val name: Token, val initializer: Expr?) : Stmt() {
   override fun execute(env: Environment): Any? {
     env.define(name.lexeme, initializer?.evaluate(env) ?: Undefined())
@@ -30,6 +36,14 @@ class BlockStmt(val statements: List<Stmt>) : Stmt() {
   override fun execute(env: Environment): Any? {
     var innerEnv = Environment(env)
     for (statement: Stmt in statements) statement.execute(innerEnv)
+    return null
+  }
+}
+
+class FunctionStmt(val name: Token, val parameters: List<Token>,
+                   val body: List<Stmt>): Stmt() {
+  override fun execute(env: Environment): Any? {
+    env.define(name.lexeme, LoxFunction(this, env))
     return null
   }
 }
