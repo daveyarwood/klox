@@ -37,13 +37,15 @@ class Interpreter {
   fun interpret(statements: List<Stmt>): Any? {
     try {
       var result: Any? = null
-      for (statement in statements) {
-        result = statement.execute(environment)
-      }
+      statements.forEach { result = it.execute(environment) }
       return result
     } catch (e: RuntimeError) {
       runtimeError(e)
       return null
     }
+  }
+
+  fun resolve(expr: Expr, depth: Int) {
+    environment.locals.put(expr, depth)
   }
 }

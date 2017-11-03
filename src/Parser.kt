@@ -29,13 +29,7 @@ class Parser(val tokens: List<Token>) {
   }
 
   private fun match(vararg types: TokenType): Boolean {
-    for (type: TokenType in types) {
-      if (check(type)) {
-        advance()
-        return true
-      }
-    }
-
+    types.forEach { if (check(it)) { advance(); return true } }
     return false
   }
 

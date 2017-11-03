@@ -5,24 +5,31 @@ package io.djy.klox
 class Undefined() {}
 
 class Environment(val parent: Environment? = null) {
-  var values = mutableMapOf<String, Any?>()
+  var globals = mutableMapOf<String, Any?>()
+  var locals = mutableMapOf<Expr, Int>()
 
   fun define(name: String, value: Any?) {
-    values.put(name, value)
+    globals.put(name, value)
   }
 
   fun assign(name: Token, value: Any?) {
-    if (values.containsKey(name.lexeme))
-      values.put(name.lexeme, value)
+    if (globals.containsKey(name.lexeme))
+      globals.put(name.lexeme, value)
     else if (parent != null)
       parent.assign(name, value)
     else
       throw RuntimeError(name, "Undefined variable '${name.lexeme}'")
   }
 
+  fun assignAt(distance: Int, name: Token, value: Any?) {
+    var env: Environment = this
+    for (i in 0 until distance) env = env.parent!!
+    env.globals.put(name.lexeme, value)
+  }
+
   fun get(name: Token): Any? {
-    if (values.containsKey(name.lexeme)) {
-      val v = values.get(name.lexeme)
+    if (globals.containsKey(name.lexeme)) {
+      val v = globals.get(name.lexeme)
       if (v is Undefined)
         throw RuntimeError(name, "Uninitialized variable '${name.lexeme}'")
       else
@@ -32,5 +39,19 @@ class Environment(val parent: Environment? = null) {
     } else {
       throw RuntimeError(name, "Undefined variable '${name.lexeme}'.")
     }
+  }
+
+  fun getAt(distance: Int, name: String): Any? {
+    var env: Environment = this
+    for (i in 0 until distance) env = env.parent!!
+    return env.globals.get(name)
+  }
+
+  fun lookUpVariable(name: Token, expr: Expr): Any? {
+    val distance: Int? = locals.get(expr)
+    return if (distance != null)
+      getAt(distance, name.lexeme)
+    else
+      get(name)
   }
 }

@@ -38,7 +38,7 @@ interface Evaluable {
   fun evaluate(env: Environment): Any?
 }
 
-abstract class Expr : Printable, Evaluable {}
+abstract class Expr : Printable, Evaluable, Resolvable {}
 
 class AssignExpr(val name: Token, val value: Expr) : Expr() {
   override fun ast(): String {
@@ -51,8 +51,18 @@ class AssignExpr(val name: Token, val value: Expr) : Expr() {
 
   override fun evaluate(env: Environment): Any? {
     val v = value.evaluate(env)
-    env.assign(name, v)
+    val distance = env.locals.get(this)
+    if (distance != null)
+      env.assignAt(distance, name, v)
+    else
+      env.assign(name, v)
     return v
+  }
+
+  override fun resolve(resolver: Resolver): Void? {
+    value.resolve(resolver)
+    resolver.resolveLocal(this, name)
+    return null
   }
 }
 
@@ -114,6 +124,12 @@ class BinaryExpr(val left: Expr, val op: Token, val right: Expr) : Expr() {
       else -> null
     }
   }
+
+  override fun resolve(resolver: Resolver): Void? {
+    left.resolve(resolver)
+    right.resolve(resolver)
+    return null
+  }
 }
 
 class CallExpr(val callee: Expr, val paren: Token,
@@ -142,6 +158,12 @@ class CallExpr(val callee: Expr, val paren: Token,
 
     return callable.call(env, args)
   }
+
+  override fun resolve(resolver: Resolver): Void? {
+    callee.resolve(resolver)
+    arguments.forEach { it.resolve(resolver) }
+    return null
+  }
 }
 
 class GroupingExpr(val expr: Expr) : Expr() {
@@ -156,6 +178,11 @@ class GroupingExpr(val expr: Expr) : Expr() {
   override fun evaluate(env: Environment): Any? {
     return expr.evaluate(env)
   }
+
+  override fun resolve(resolver: Resolver): Void? {
+    expr.resolve(resolver)
+    return null
+  }
 }
 
 class LiteralExpr(val value: Any?) : Expr() {
@@ -169,6 +196,10 @@ class LiteralExpr(val value: Any?) : Expr() {
 
   override fun evaluate(env: Environment): Any? {
     return value
+  }
+
+  override fun resolve(resolver: Resolver): Void? {
+    return null
   }
 }
 
@@ -190,6 +221,12 @@ class LogicalExpr(val left: Expr, val op: Token, val right: Expr) : Expr() {
       else -> throw RuntimeError(op, "Unrecognized logical operator")
     }
   }
+
+  override fun resolve(resolver: Resolver): Void? {
+    left.resolve(resolver)
+    right.resolve(resolver)
+    return null
+  }
 }
 
 class UnaryExpr(val op: Token, val right: Expr) : Expr() {
@@ -210,6 +247,11 @@ class UnaryExpr(val op: Token, val right: Expr) : Expr() {
       else            -> null
     }
   }
+
+  override fun resolve(resolver: Resolver): Void? {
+    right.resolve(resolver)
+    return null
+  }
 }
 
 class VariableExpr(val name: Token): Expr() {
@@ -222,7 +264,16 @@ class VariableExpr(val name: Token): Expr() {
   }
 
   override fun evaluate(env: Environment): Any? {
-    return env.get(name)
+    return env.lookUpVariable(name, this)
+  }
+
+  override fun resolve(resolver: Resolver): Void? {
+    if (!resolver.scopes.isEmpty() &&
+        resolver.scopes.peek().get(name.lexeme) == false)
+      Lox.error(name, "Cannot read local variable in its own initializer.")
+
+    resolver.resolveLocal(this, name)
+    return null
   }
 }
 
