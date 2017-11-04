@@ -1,3 +1,3 @@
 package io.djy.klox
 
-enum class FunctionType { NONE, FUNCTION }
+enum class FunctionType { NONE, FUNCTION, INITIALIZER, METHOD }

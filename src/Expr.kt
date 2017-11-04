@@ -140,7 +140,7 @@ class CallExpr(val callee: Expr, val paren: Token,
 
   override fun rpn(): String {
     val args: String = arguments.joinToString(separator = " ",
-                                              transform = { it.ast() })
+                                              transform = { it.rpn() })
     return "${callee.rpn()} $args"
   }
 
@@ -162,6 +162,29 @@ class CallExpr(val callee: Expr, val paren: Token,
   override fun resolve(resolver: Resolver): Void? {
     callee.resolve(resolver)
     arguments.forEach { it.resolve(resolver) }
+    return null
+  }
+}
+
+class GetExpr(val obj: Expr, val name: Token): Expr() {
+  override fun ast(): String {
+    return parenthesize("get", obj, LiteralExpr(name.lexeme))
+  }
+
+  override fun rpn(): String {
+    return "${obj.rpn()} ${name.lexeme} get"
+  }
+
+  override fun evaluate(env: Environment): Any? {
+    val o = obj.evaluate(env)
+    if (o is LoxInstance)
+      return (o as LoxInstance).get(name)
+    else
+      throw RuntimeError(name, "Only instances have properties.")
+  }
+
+  override fun resolve(resolver: Resolver): Void? {
+    obj.resolve(resolver)
     return null
   }
 }
@@ -225,6 +248,56 @@ class LogicalExpr(val left: Expr, val op: Token, val right: Expr) : Expr() {
   override fun resolve(resolver: Resolver): Void? {
     left.resolve(resolver)
     right.resolve(resolver)
+    return null
+  }
+}
+
+class SetExpr(val obj: Expr, val name: Token, val value: Expr): Expr() {
+  override fun ast(): String {
+    return parenthesize("set", obj, LiteralExpr(name.lexeme), value)
+  }
+
+  override fun rpn(): String {
+    return "${obj.rpn()} ${name.lexeme} ${value.rpn()} set"
+  }
+
+  override fun evaluate(env: Environment): Any? {
+    val o = obj.evaluate(env)
+    if (o !is LoxInstance)
+      throw RuntimeError(name, "Only instances have fields.")
+
+    val v = value.evaluate(env)
+    (o as LoxInstance).set(name, v)
+
+    return v
+  }
+
+  override fun resolve(resolver: Resolver): Void? {
+    value.resolve(resolver)
+    obj.resolve(resolver)
+    return null
+  }
+}
+
+class ThisExpr(val keyword: Token) : Expr() {
+  override fun ast(): String {
+    return "this"
+  }
+
+  override fun rpn(): String {
+    return "this"
+  }
+
+  override fun evaluate(env: Environment): Any? {
+    return env.lookUpVariable(keyword, this)
+  }
+
+  override fun resolve(resolver: Resolver): Void? {
+    if (resolver.currentClass == ClassType.NONE) {
+      Lox.error(keyword, "Cannot use 'this' outside of a class.")
+      return null
+    }
+    resolver.resolveLocal(this, keyword)
     return null
   }
 }

@@ -38,6 +38,9 @@ class ReturnStmt(val keyword: Token, val value: Expr?) : Stmt() {
     if (resolver.currentFunction == FunctionType.NONE)
       Lox.error(keyword, "Cannot return from top-level code.")
 
+    if (resolver.currentFunction == FunctionType.INITIALIZER)
+      Lox.error(keyword, "Cannot return a value from an initializer.")
+
     value?.resolve(resolver)
     return null
   }
@@ -72,10 +75,33 @@ class BlockStmt(val statements: List<Stmt>) : Stmt() {
   }
 }
 
+class ClassStmt(val name: Token, val methods: List<FunctionStmt>) : Stmt() {
+  override fun execute(env: Environment): Any? {
+    env.define(name.lexeme, null)
+
+    var classMethods = HashMap<String, LoxFunction>()
+    for (method in methods) {
+      val fn = LoxFunction(method, env, method.name.lexeme.equals("init"))
+      classMethods.put(method.name.lexeme, fn)
+    }
+
+    val klass = LoxClass(name.lexeme, classMethods)
+    env.assign(name, klass)
+    return null
+  }
+
+  override fun resolve(resolver: Resolver): Void? {
+    resolver.declare(name)
+    resolver.define(name)
+    resolver.resolveClass(this)
+    return null
+  }
+}
+
 class FunctionStmt(val name: Token, val parameters: List<Token>,
                    val body: List<Stmt>): Stmt() {
   override fun execute(env: Environment): Any? {
-    env.define(name.lexeme, LoxFunction(this, env))
+    env.define(name.lexeme, LoxFunction(this, env, false))
     return null
   }
 

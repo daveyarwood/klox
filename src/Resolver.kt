@@ -5,6 +5,7 @@ import java.util.Stack
 class Resolver(val interpreter: Interpreter) {
   var scopes = Stack<MutableMap<String, Boolean>>()
   var currentFunction = FunctionType.NONE
+  var currentClass = ClassType.NONE
 
   fun beginScope() {
     scopes.push(mutableMapOf<String, Boolean>())
@@ -55,6 +56,22 @@ class Resolver(val interpreter: Interpreter) {
     endScope()
 
     currentFunction = enclosingFunction
+  }
+
+  fun resolveClass(klass: ClassStmt) {
+    val enclosingClass = currentClass
+    currentClass = ClassType.CLASS
+    beginScope()
+    scopes.peek().put("this", true)
+    for (method in klass.methods) {
+      val declaration = if (method.name.lexeme.equals("init"))
+        FunctionType.INITIALIZER
+      else
+        FunctionType.METHOD
+      resolveFunction(method, declaration)
+    }
+    endScope()
+    currentClass = enclosingClass
   }
 }
 
