@@ -279,6 +279,36 @@ class SetExpr(val obj: Expr, val name: Token, val value: Expr): Expr() {
   }
 }
 
+class SuperExpr(val keyword: Token, val method: Token): Expr() {
+  override fun ast(): String {
+    return parenthesize("super-method", LiteralExpr(method.lexeme))
+  }
+
+  override fun rpn(): String {
+    return "${method.lexeme} super-method"
+  }
+
+  override fun evaluate(env: Environment): Any? {
+    // Can throw NPE... I don't have this quite right.
+    val distance   = env.locals.get(this)!!
+    val superclass = env.getAt(distance, "super") as LoxClass
+    val obj        = env.getAt(distance - 1, "this") as LoxInstance
+    return superclass.findMethod(obj, method.lexeme) ?: throw RuntimeError(
+      method, "Undefined property '${method.lexeme}'."
+    )
+  }
+
+  override fun resolve(resolver: Resolver): Void? {
+    if (resolver.currentClass == ClassType.NONE)
+      Lox.error(keyword, "Cannot use 'super' outside of a class.")
+    else if (resolver.currentClass != ClassType.SUBCLASS)
+      Lox.error(keyword, "Cannot use 'super' in a class with no superclass.")
+
+    resolver.resolveLocal(this, keyword)
+    return null
+  }
+}
+
 class ThisExpr(val keyword: Token) : Expr() {
   override fun ast(): String {
     return "this"

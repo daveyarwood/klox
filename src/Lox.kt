@@ -40,7 +40,7 @@ object Lox {
     if (hadError) return null
 
     val resolver = Resolver(interpreter)
-    resolver.resolve(statements)
+    statements.forEach { it.resolve(resolver) }
 
     // Stop if there was a resolution error.
     if (hadError) return null

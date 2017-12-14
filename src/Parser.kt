@@ -203,19 +203,31 @@ class Parser(val tokens: List<Token>) {
 
   private fun primary(): Expr {
     when {
-      match(TokenType.FALSE) -> return LiteralExpr(false)
-      match(TokenType.TRUE) -> return LiteralExpr(true)
-      match(TokenType.NIL) -> return LiteralExpr(null)
+      match(TokenType.FALSE)      -> return LiteralExpr(false)
+      match(TokenType.TRUE)       -> return LiteralExpr(true)
+      match(TokenType.NIL)        -> return LiteralExpr(null)
+      match(TokenType.THIS)       -> return ThisExpr(previous())
+      match(TokenType.IDENTIFIER) -> return VariableExpr(previous())
+
       match(TokenType.NUMBER, TokenType.STRING) -> {
         return LiteralExpr(previous().literal)
       }
+
+      match(TokenType.SUPER) -> {
+        val keyword: Token = previous()
+        consume(TokenType.DOT, "Expect '.' after 'super'.")
+        val method: Token = consume(
+          TokenType.IDENTIFIER, "Expect superclass method name."
+        )
+        return SuperExpr(keyword, method)
+      }
+
       match(TokenType.LEFT_PAREN) -> {
         val expr: Expr = expression()
         consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.")
         return GroupingExpr(expr)
       }
-      match(TokenType.THIS) -> return ThisExpr(previous())
-      match(TokenType.IDENTIFIER) -> return VariableExpr(previous())
+
       else -> throw error(peek(), "Expect expression.")
     }
   }
@@ -350,6 +362,14 @@ class Parser(val tokens: List<Token>) {
 
   private fun classDeclaration(): ClassStmt {
     val name: Token = consume(TokenType.IDENTIFIER, "Expect class name.")
+
+    val superclass: Expr? = if (match(TokenType.LESS)) {
+      consume(TokenType.IDENTIFIER, "Expect superclass name.")
+      VariableExpr(previous())
+    } else {
+      null
+    }
+
     consume(TokenType.LEFT_BRACE, "Expect '{' before class body.")
 
     var methods = ArrayList<FunctionStmt>()
@@ -358,7 +378,7 @@ class Parser(val tokens: List<Token>) {
     }
 
     consume(TokenType.RIGHT_BRACE, "Expect '}' after class body.")
-    return ClassStmt(name, methods)
+    return ClassStmt(name, superclass, methods)
   }
 
   private fun declaration(): Stmt? {

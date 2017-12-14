@@ -28,10 +28,6 @@ class Resolver(val interpreter: Interpreter) {
     scopes.peek().put(name.lexeme, true)
   }
 
-  fun resolve(statements: List<Stmt>) {
-    statements.forEach { it.resolve(this) }
-  }
-
   fun resolveLocal(expr: Expr, name: Token) {
     for (i in (scopes.size - 1) downTo 0) {
       if (scopes.get(i).containsKey(name.lexeme)) {
@@ -52,7 +48,7 @@ class Resolver(val interpreter: Interpreter) {
       declare(param)
       define(param)
     }
-    resolve(function.body)
+    function.body.forEach { it.resolve(this) }
     endScope()
 
     currentFunction = enclosingFunction
@@ -61,6 +57,14 @@ class Resolver(val interpreter: Interpreter) {
   fun resolveClass(klass: ClassStmt) {
     val enclosingClass = currentClass
     currentClass = ClassType.CLASS
+
+    if (klass.superclassExpr != null) {
+      currentClass = ClassType.SUBCLASS;
+      klass.superclassExpr.resolve(this)
+      beginScope()
+      scopes.peek().put("super", true)
+    }
+
     beginScope()
     scopes.peek().put("this", true)
     for (method in klass.methods) {
@@ -71,6 +75,10 @@ class Resolver(val interpreter: Interpreter) {
       resolveFunction(method, declaration)
     }
     endScope()
+
+    if (klass.superclassExpr != null)
+      endScope();
+
     currentClass = enclosingClass
   }
 }

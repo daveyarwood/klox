@@ -75,17 +75,26 @@ class BlockStmt(val statements: List<Stmt>) : Stmt() {
   }
 }
 
-class ClassStmt(val name: Token, val methods: List<FunctionStmt>) : Stmt() {
+class ClassStmt(val name: Token, val superclassExpr: Expr?,
+                val methods: List<FunctionStmt>) : Stmt() {
   override fun execute(env: Environment): Any? {
     env.define(name.lexeme, null)
 
+    val superclass = superclassExpr?.evaluate(env)
+
+    if (superclass != null && superclass !is LoxClass)
+      throw RuntimeError(name, "Superclass must be a class.")
+
+    val classEnv = Environment(env)
+    classEnv.define("super", superclass)
+
     var classMethods = HashMap<String, LoxFunction>()
     for (method in methods) {
-      val fn = LoxFunction(method, env, method.name.lexeme.equals("init"))
+      val fn = LoxFunction(method, classEnv, method.name.lexeme.equals("init"))
       classMethods.put(method.name.lexeme, fn)
     }
 
-    val klass = LoxClass(name.lexeme, classMethods)
+    val klass = LoxClass(name.lexeme, superclass as LoxClass?, classMethods)
     env.assign(name, klass)
     return null
   }
